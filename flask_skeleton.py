@@ -51,6 +51,9 @@ def generate_brief(args):
     template = template_env.get_template('brief.jinja2')
     return template.render(template_var)
 
+# TODO: use python-based approach to mkddir_p()
+def mkdir_p(dir_path):
+    os.system("mkdir -p {}".format(dir_path))
 
 def main(args):
 
@@ -75,16 +78,22 @@ def main(args):
     template_var = {
         'secret_key': secret_key,
     }
-    with open(os.path.join(fullpath, 'project', 'config.py'), 'w') as fd:
+    dir_path = os.path.join(fullpath, 'project')
+    mkdir_p(dir_path)
+    with open(os.path.join(dir_path, 'config.py'), 'w') as fd:
         fd.write(template.render(template_var))
 
     # Add bower dependencies
+    # NOTE: make sure bower installed
+    # npm install -g bower
     if args.bower:
         print("Adding bower dependencies...")
         bower = args.bower.split(',')
         bower_exe = which('bower')
         if bower_exe:
-            os.chdir(os.path.join(fullpath, 'project', 'client', 'static'))
+            dir_path = os.path.join(fullpath, 'project', 'client', 'static')
+            mkdir_p(dir_path)
+            os.chdir(dir_path)
             for dependency in bower:
                 output, error = subprocess.Popen(
                     [bower_exe, 'install', dependency],
@@ -101,10 +110,11 @@ def main(args):
     virtualenv = args.virtualenv
     if virtualenv:
         print("Adding a virtualenv...")
-        virtualenv_exe = which('pyvenv')
-        if virtualenv_exe:
+        # NOTE: We should already be in an activated venv from the skeleton
+        python_exe = "{}".format(which('python'))
+        if python_exe:
             output, error = subprocess.Popen(
-                [virtualenv_exe, os.path.join(fullpath, 'env')],
+                [python_exe, "-m", "venv", os.path.join(fullpath, 'env')],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
             ).communicate()
